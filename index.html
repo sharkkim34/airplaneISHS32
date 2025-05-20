@@ -12,7 +12,8 @@
       padding: 20px;
     }
     .container {
-      max-width: 1200px;
+      position: relative;
+      max-width: 600px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -22,38 +23,27 @@
     h1 {
       text-align: center;
     }
-    .seat-map {
-      display: flex;
-      flex-direction: row;
-      overflow-x: auto;
-      gap: 8px;
-      justify-content: center;
+    .seat-overlay {
+      position: relative;
       margin-top: 20px;
-      padding-bottom: 10px;
     }
-    .seat-column {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-      min-width: 42px;
+    .seat-overlay img {
+      width: 100%;
     }
-    .seat {
-      width: 40px;
-      height: 40px;
+    .seat-button {
+      position: absolute;
+      width: 28px;
+      height: 28px;
       background-color: #0078d7;
       color: white;
       border: none;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 10px;
+      text-align: center;
       cursor: pointer;
     }
-    .selected {
-      background-color: red !important;
-    }
-    .disabled {
-      background-color: #ccc !important;
-      cursor: not-allowed;
+    .seat-button.selected {
+      background-color: red;
     }
     .info {
       margin-top: 20px;
@@ -78,7 +68,6 @@
       cursor: pointer;
     }
   </style>
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 </head>
@@ -86,7 +75,10 @@
 <div class="container">
   <h1>이코노미석 좌석 선호도 조사</h1>
 
-  <div class="seat-map" id="seatMap"></div>
+  <div class="seat-overlay">
+    <img src="24d36fcb-cae6-44db-b9ab-b1e9da292e44.png" alt="좌석 배치도">
+    <div id="seatButtons"></div>
+  </div>
 
   <div class="info">
     <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
@@ -107,15 +99,15 @@
     measurementId: "G-X493J6LN64"
   };
 
-  const app = firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 
-  const seatMap = document.getElementById('seatMap');
-  const selectedSeatSpan = document.getElementById('selectedSeat');
   const seatCountsContainer = document.getElementById('seatCounts');
+  const selectedSeatSpan = document.getElementById('selectedSeat');
+  const seatButtonsDiv = document.getElementById('seatButtons');
   const resetBtn = document.getElementById('resetBtn');
 
-  const columns = ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'];
+  const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
   const rows = Array.from({ length: 26 }, (_, i) => 28 + i);
 
   function getSeatColor(count) {
@@ -124,6 +116,44 @@
     if (count >= 20) return '#cc0000';
     if (count >= 10) return '#ff3333';
     return '#0078d7';
+  }
+
+  function renderSeatButtons(counts) {
+    seatButtonsDiv.innerHTML = '';
+    const selected = localStorage.getItem('selectedSeat');
+
+    rows.forEach((row, rowIndex) => {
+      columns.forEach((col, colIndex) => {
+        const seatId = `${row}${col}`;
+        const count = counts[seatId] || 0;
+
+        const btn = document.createElement('button');
+        btn.className = 'seat-button';
+        btn.textContent = `${seatId}`;
+        btn.dataset.seat = seatId;
+        btn.style.left = `${10 + colIndex * 42}px`;
+        btn.style.top = `${10 + rowIndex * 20}px`;
+        btn.style.backgroundColor = getSeatColor(count);
+
+        if (selected) {
+          btn.disabled = true;
+          if (selected === seatId) {
+            btn.classList.add('selected');
+            btn.disabled = false;
+          }
+        }
+
+        btn.addEventListener('click', () => {
+          if (localStorage.getItem('selectedSeat')) return;
+          const ref = database.ref('seats/' + seatId);
+          ref.transaction(current => (current || 0) + 1);
+          localStorage.setItem('selectedSeat', seatId);
+          selectedSeatSpan.textContent = seatId;
+        });
+
+        seatButtonsDiv.appendChild(btn);
+      });
+    });
   }
 
   function updateSeatCountsDisplay(counts) {
@@ -138,67 +168,15 @@
     });
   }
 
-  function renderSeats(counts) {
-    seatMap.innerHTML = '';
-    const selected = localStorage.getItem('selectedSeat');
-
-    columns.forEach(col => {
-      const colDiv = document.createElement('div');
-      colDiv.className = 'seat-column';
-
-      if (col === '') {
-        const spacer = document.createElement('div');
-        spacer.style.height = `${rows.length * 40}px`;
-        colDiv.appendChild(spacer);
-        seatMap.appendChild(colDiv);
-        return;
-      }
-
-      rows.forEach(row => {
-        const seatId = `${row}${col}`;
-        const btn = document.createElement('button');
-        const count = counts[seatId] || 0;
-
-        btn.className = 'seat';
-        btn.textContent = `${seatId} (${count})`;
-        btn.dataset.seat = seatId;
-        btn.style.backgroundColor = getSeatColor(count);
-
-        if (selected) {
-          btn.disabled = true;
-          btn.classList.add('disabled');
-          if (selected === seatId) {
-            btn.classList.add('selected');
-            btn.disabled = false;
-            btn.classList.remove('disabled');
-          }
-        }
-
-        btn.addEventListener('click', () => {
-          if (localStorage.getItem('selectedSeat')) return;
-          const ref = database.ref('seats/' + seatId);
-          ref.transaction(current => (current || 0) + 1);
-          localStorage.setItem('selectedSeat', seatId);
-          selectedSeatSpan.textContent = seatId;
-        });
-
-        colDiv.appendChild(btn);
-      });
-
-      seatMap.appendChild(colDiv);
-    });
-  }
-
   database.ref('seats').on('value', snapshot => {
     const counts = snapshot.val() || {};
-    renderSeats(counts);
+    renderSeatButtons(counts);
     updateSeatCountsDisplay(counts);
   });
 
   resetBtn.addEventListener('click', () => {
     const seatId = localStorage.getItem('selectedSeat');
     if (!seatId) return;
-
     const ref = database.ref('seats/' + seatId);
     ref.transaction(current => Math.max((current || 1) - 1, 0));
     localStorage.removeItem('selectedSeat');
