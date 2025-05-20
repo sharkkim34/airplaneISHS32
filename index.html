@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이코노미석 좌석 선호도 조사</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-top: 15px;
+    }
+    select, textarea, input[type="text"] {
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    img {
+      width: 100%;
+      margin-top: 20px;
+    }
+    .results {
+      margin-top: 30px;
+    }
+    .results h2 {
+      margin-bottom: 10px;
+    }
+    .seat-count {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+    .seat-box {
+      background-color: #eef;
+      border: 1px solid #aac;
+      border-radius: 5px;
+      padding: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>이코노미석 좌석 선호도 조사</h1>
+    <form id="surveyForm">
+      <label for="seat">선호하는 좌석을 선택해주세요</label>
+      <select id="seat" name="seat">
+        <option value="">좌석 선택</option>
+        <script>
+          for (let row = 28; row <= 53; row++) {
+            ["A", "B", "C", "D", "E", "F", "G", "H", "J"].forEach(col => {
+              document.write(`<option value="${row}${col}">${row}${col}</option>`);
+            });
+          }
+        </script>
+      </select>
+
+      <label for="reason">이 좌석을 선호하는 이유는 무엇인가요?</label>
+      <textarea id="reason" name="reason" rows="4" placeholder="이유를 적어주세요..."></textarea>
+
+      <label for="experience">해당 좌석에서의 경험이 있다면 공유해주세요</label>
+      <textarea id="experience" name="experience" rows="4" placeholder="경험을 적어주세요..."></textarea>
+
+      <button type="submit">제출하기</button>
+    </form>
+
+    <div class="results">
+      <h2>좌석별 선호도 현황</h2>
+      <div class="seat-count" id="seatCountDisplay"></div>
+    </div>
+
+    <img src="4ac605de-c37b-4bd2-8db2-500e262264f1.png" alt="비행기 좌석 배치도">
+  </div>
+
+  <script>
+    const seatCounts = {};
+    const seatOptions = [];
+    for (let row = 28; row <= 53; row++) {
+      ["A", "B", "C", "D", "E", "F", "G", "H", "J"].forEach(col => {
+        const seat = `${row}${col}`;
+        seatCounts[seat] = 0;
+        seatOptions.push(seat);
+      });
+    }
+
+    const form = document.getElementById('surveyForm');
+    const seatCountDisplay = document.getElementById('seatCountDisplay');
+
+    function updateSeatCounts() {
+      seatCountDisplay.innerHTML = '';
+      seatOptions.forEach(seat => {
+        const box = document.createElement('div');
+        box.className = 'seat-box';
+        box.textContent = `${seat}: ${seatCounts[seat]}명`;
+        seatCountDisplay.appendChild(box);
+      });
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const seat = document.getElementById('seat').value;
+      if (seat && seatCounts.hasOwnProperty(seat)) {
+        seatCounts[seat]++;
+        updateSeatCounts();
+        alert('응답이 제출되었습니다. 감사합니다!');
+        form.reset();
+      } else {
+        alert('좌석을 선택해주세요.');
+      }
+    });
+
+    updateSeatCounts();
+  </script>
+</body>
+</html>
