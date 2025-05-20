@@ -12,7 +12,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 600px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -22,21 +22,26 @@
     h1 {
       text-align: center;
     }
-    .seat-grid {
-      display: grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 5px;
-      justify-items: center;
+    .seat-map {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
       margin-top: 20px;
     }
+    .seat-row {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      gap: 4px;
+    }
     .seat {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background-color: #0078d7;
       color: white;
       border: none;
-      border-radius: 5px;
-      font-size: 12px;
+      border-radius: 4px;
+      font-size: 11px;
       cursor: pointer;
     }
     .aisle {
@@ -44,6 +49,10 @@
     }
     .selected {
       background-color: red !important;
+    }
+    .disabled {
+      background-color: #ccc !important;
+      cursor: not-allowed;
     }
     .info {
       margin-top: 20px;
@@ -64,66 +73,97 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>이코노미석 좌석 선호도 조사</h1>
+<div class="container">
+  <h1>이코노미석 좌석 선호도 조사</h1>
 
-    <div class="seat-grid" id="seatGrid"></div>
+  <div class="seat-map" id="seatMap"></div>
 
-    <div class="info">
-      <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
-      <div class="counts" id="seatCounts"></div>
-    </div>
+  <div class="info">
+    <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
+    <div class="counts" id="seatCounts"></div>
   </div>
+</div>
 
-  <script>
-    const seatGrid = document.getElementById('seatGrid');
-    const selectedSeatSpan = document.getElementById('selectedSeat');
-    const seatCountsContainer = document.getElementById('seatCounts');
-    const seatCounts = {};
-    const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J']; // No 'I'
+<script>
+  const seatMap = document.getElementById('seatMap');
+  const selectedSeatSpan = document.getElementById('selectedSeat');
+  const seatCountsContainer = document.getElementById('seatCounts');
+  const seatCounts = {};
+  let seatSelected = false;
 
-    for (let row = 28; row <= 53; row++) {
-      for (let i = 0; i < columns.length + 1; i++) {
-        if (i === 3 || i === 6) {
-          const aisle = document.createElement('div');
-          aisle.className = 'aisle';
-          seatGrid.appendChild(aisle);
-        }
+  const layout = {
+    F: [
+      { row: 1, seats: ['A', '', 'D', 'E', '', 'J'] },
+      { row: 2, seats: ['A', '', 'D', 'E', '', 'J'] },
+    ],
+    C: [
+      { row: 7, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 8, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 9, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 10, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 11, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 12, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 14, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+      { row: 15, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
+    ],
+    Y: Array.from({ length: 26 }, (_, i) => {
+      const row = 28 + i;
+      return { row, seats: ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'] };
+    })
+  };
 
-        if (i === 9) continue; // No column I
+  Object.values(layout).flat().forEach(({ row, seats }) => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'seat-row';
 
-        const col = columns[i < 3 ? i : i - 1];
-        const seatId = `${row}${col}`;
+    seats.forEach(seat => {
+      if (seat === '') {
+        const empty = document.createElement('div');
+        empty.className = 'aisle';
+        rowDiv.appendChild(empty);
+      } else {
+        const seatId = `${row}${seat}`;
         seatCounts[seatId] = 0;
-
         const btn = document.createElement('button');
         btn.className = 'seat';
         btn.textContent = seatId;
         btn.dataset.seat = seatId;
 
         btn.addEventListener('click', () => {
-          document.querySelectorAll('.seat').forEach(b => b.classList.remove('selected'));
+          if (seatSelected) return; // 한 번만 선택 가능
+
           btn.classList.add('selected');
           seatCounts[seatId]++;
           selectedSeatSpan.textContent = seatId;
           updateSeatCounts();
+
+          seatSelected = true;
+          document.querySelectorAll('.seat').forEach(b => {
+            if (!b.classList.contains('selected')) {
+              b.disabled = true;
+              b.classList.add('disabled');
+            }
+          });
         });
 
-        seatGrid.appendChild(btn);
+        rowDiv.appendChild(btn);
       }
-    }
+    });
 
-    function updateSeatCounts() {
-      seatCountsContainer.innerHTML = '';
-      Object.entries(seatCounts).forEach(([seat, count]) => {
-        if (count > 0) {
-          const div = document.createElement('div');
-          div.className = 'count-box';
-          div.textContent = `${seat}: ${count}명`;
-          seatCountsContainer.appendChild(div);
-        }
-      });
-    }
-  </script>
+    seatMap.appendChild(rowDiv);
+  });
+
+  function updateSeatCounts() {
+    seatCountsContainer.innerHTML = '';
+    Object.entries(seatCounts).forEach(([seat, count]) => {
+      if (count > 0) {
+        const div = document.createElement('div');
+        div.className = 'count-box';
+        div.textContent = `${seat}: ${count}명`;
+        seatCountsContainer.appendChild(div);
+      }
+    });
+  }
+</script>
 </body>
 </html>
