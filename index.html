@@ -12,7 +12,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 800px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -22,25 +22,25 @@
     h1 {
       text-align: center;
     }
-    .seat-map {
-      position: relative;
-      width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+      justify-items: center;
+      margin-top: 20px;
     }
-    .seat-map img {
-      width: 100%;
-    }
-    .seat-button {
-      position: absolute;
-      width: 7%;
-      height: 3.5%;
-      background-color: rgba(0, 120, 215, 0.6);
+    .seat {
+      width: 40px;
+      height: 40px;
+      background-color: #0078d7;
       color: white;
       border: none;
-      border-radius: 3px;
-      font-size: 10px;
+      border-radius: 5px;
+      font-size: 12px;
       cursor: pointer;
+    }
+    .aisle {
+      visibility: hidden;
     }
     .selected {
       background-color: red !important;
@@ -67,10 +67,7 @@
   <div class="container">
     <h1>이코노미석 좌석 선호도 조사</h1>
 
-    <div class="seat-map">
-      <img src="4ac605de-c37b-4bd2-8db2-500e262264f1.png" alt="비행기 좌석 배치도">
-      <div id="seatButtons"></div>
-    </div>
+    <div class="seat-grid" id="seatGrid"></div>
 
     <div class="info">
       <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
@@ -79,42 +76,41 @@
   </div>
 
   <script>
-    const seatContainer = document.getElementById('seatButtons');
+    const seatGrid = document.getElementById('seatGrid');
     const selectedSeatSpan = document.getElementById('selectedSeat');
     const seatCountsContainer = document.getElementById('seatCounts');
     const seatCounts = {};
-
-    const leftStartX = 13; // A열 시작 X% 기준
-    const xGap = 7; // 좌석 간 가로 간격
-    const yStart = 51; // 28열의 Y% 위치 기준
-    const yGap = 2.5; // 열 간 세로 간격
-
-    const columns = ["A", "B", "C", "D", "E", "F", "G", "H", "J"];
+    const columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J']; // No 'I'
 
     for (let row = 28; row <= 53; row++) {
-      const yPos = yStart + (row - 28) * yGap;
-      columns.forEach((col, index) => {
-        const xPos = leftStartX + index * xGap;
+      for (let i = 0; i < columns.length + 1; i++) {
+        if (i === 3 || i === 6) {
+          const aisle = document.createElement('div');
+          aisle.className = 'aisle';
+          seatGrid.appendChild(aisle);
+        }
+
+        if (i === 9) continue; // No column I
+
+        const col = columns[i < 3 ? i : i - 1];
         const seatId = `${row}${col}`;
         seatCounts[seatId] = 0;
 
         const btn = document.createElement('button');
-        btn.className = 'seat-button';
-        btn.style.top = `${yPos}%`;
-        btn.style.left = `${xPos}%`;
+        btn.className = 'seat';
         btn.textContent = seatId;
         btn.dataset.seat = seatId;
 
         btn.addEventListener('click', () => {
-          document.querySelectorAll('.seat-button').forEach(b => b.classList.remove('selected'));
+          document.querySelectorAll('.seat').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
           seatCounts[seatId]++;
           selectedSeatSpan.textContent = seatId;
           updateSeatCounts();
         });
 
-        seatContainer.appendChild(btn);
-      });
+        seatGrid.appendChild(btn);
+      }
     }
 
     function updateSeatCounts() {
