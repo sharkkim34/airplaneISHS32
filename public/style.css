@@ -1,0 +1,43 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+#seat-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.seat {
+  width: 60px;
+  height: 60px;
+  margin: 4px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.seat:hover {
+  background-color: #f0f0f0;
+}
+
+.selected {
+  background-color: #4caf50;
+  color: white;
+}
+
+.seat-id {
+  font-weight: bold;
+}
+
+.vote-count {
+  font-size: 12px;
+  color: #555;
+}
