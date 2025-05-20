@@ -12,7 +12,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 1000px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -22,126 +22,112 @@
     h1 {
       text-align: center;
     }
-    form {
-      display: flex;
-      flex-direction: column;
+    .seat-map {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px auto;
     }
-    label {
-      margin-top: 15px;
+    .seat-map img {
+      width: 100%;
     }
-    select, textarea, input[type="text"] {
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px;
-      background-color: #0078d7;
+    .seat-button {
+      position: absolute;
+      width: 7%;
+      height: 3.5%;
+      background-color: rgba(0, 120, 215, 0.6);
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 3px;
+      font-size: 10px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #005fa3;
+    .selected {
+      background-color: red !important;
     }
-    img {
-      width: 100%;
+    .info {
       margin-top: 20px;
     }
-    .results {
-      margin-top: 30px;
-    }
-    .results h2 {
-      margin-bottom: 10px;
-    }
-    .seat-count {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
+    .counts {
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
+      margin-top: 10px;
     }
-    .seat-box {
+    .count-box {
       background-color: #eef;
       border: 1px solid #aac;
       border-radius: 5px;
-      padding: 10px;
-      text-align: center;
+      padding: 5px 10px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>이코노미석 좌석 선호도 조사</h1>
-    <form id="surveyForm">
-      <label for="seat">선호하는 좌석을 선택해주세요</label>
-      <select id="seat" name="seat">
-        <option value="">좌석 선택</option>
-        <script>
-          for (let row = 28; row <= 53; row++) {
-            ["A", "B", "C", "D", "E", "F", "G", "H", "J"].forEach(col => {
-              document.write(`<option value="${row}${col}">${row}${col}</option>`);
-            });
-          }
-        </script>
-      </select>
 
-      <label for="reason">이 좌석을 선호하는 이유는 무엇인가요?</label>
-      <textarea id="reason" name="reason" rows="4" placeholder="이유를 적어주세요..."></textarea>
-
-      <label for="experience">해당 좌석에서의 경험이 있다면 공유해주세요</label>
-      <textarea id="experience" name="experience" rows="4" placeholder="경험을 적어주세요..."></textarea>
-
-      <button type="submit">제출하기</button>
-    </form>
-
-    <div class="results">
-      <h2>좌석별 선호도 현황</h2>
-      <div class="seat-count" id="seatCountDisplay"></div>
+    <div class="seat-map">
+      <img src="4ac605de-c37b-4bd2-8db2-500e262264f1.png" alt="비행기 좌석 배치도">
+      <div id="seatButtons"></div>
     </div>
 
-    <img src="4ac605de-c37b-4bd2-8db2-500e262264f1.png" alt="비행기 좌석 배치도">
+    <div class="info">
+      <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
+      <div class="counts" id="seatCounts"></div>
+    </div>
   </div>
 
   <script>
+    const seatContainer = document.getElementById('seatButtons');
+    const selectedSeatSpan = document.getElementById('selectedSeat');
+    const seatCountsContainer = document.getElementById('seatCounts');
     const seatCounts = {};
-    const seatOptions = [];
+
+    const leftStartX = 13; // A열 시작 X% 기준
+    const xGap = 7; // 좌석 간 가로 간격
+    const yStart = 51; // 28열의 Y% 위치 기준
+    const yGap = 2.5; // 열 간 세로 간격
+
+    const columns = ["A", "B", "C", "D", "E", "F", "G", "H", "J"];
+
     for (let row = 28; row <= 53; row++) {
-      ["A", "B", "C", "D", "E", "F", "G", "H", "J"].forEach(col => {
-        const seat = `${row}${col}`;
-        seatCounts[seat] = 0;
-        seatOptions.push(seat);
+      const yPos = yStart + (row - 28) * yGap;
+      columns.forEach((col, index) => {
+        const xPos = leftStartX + index * xGap;
+        const seatId = `${row}${col}`;
+        seatCounts[seatId] = 0;
+
+        const btn = document.createElement('button');
+        btn.className = 'seat-button';
+        btn.style.top = `${yPos}%`;
+        btn.style.left = `${xPos}%`;
+        btn.textContent = seatId;
+        btn.dataset.seat = seatId;
+
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.seat-button').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          seatCounts[seatId]++;
+          selectedSeatSpan.textContent = seatId;
+          updateSeatCounts();
+        });
+
+        seatContainer.appendChild(btn);
       });
     }
-
-    const form = document.getElementById('surveyForm');
-    const seatCountDisplay = document.getElementById('seatCountDisplay');
 
     function updateSeatCounts() {
-      seatCountDisplay.innerHTML = '';
-      seatOptions.forEach(seat => {
-        const box = document.createElement('div');
-        box.className = 'seat-box';
-        box.textContent = `${seat}: ${seatCounts[seat]}명`;
-        seatCountDisplay.appendChild(box);
+      seatCountsContainer.innerHTML = '';
+      Object.entries(seatCounts).forEach(([seat, count]) => {
+        if (count > 0) {
+          const div = document.createElement('div');
+          div.className = 'count-box';
+          div.textContent = `${seat}: ${count}명`;
+          seatCountsContainer.appendChild(div);
+        }
       });
     }
-
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const seat = document.getElementById('seat').value;
-      if (seat && seatCounts.hasOwnProperty(seat)) {
-        seatCounts[seat]++;
-        updateSeatCounts();
-        alert('응답이 제출되었습니다. 감사합니다!');
-        form.reset();
-      } else {
-        alert('좌석을 선택해주세요.');
-      }
-    });
-
-    updateSeatCounts();
   </script>
 </body>
 </html>
