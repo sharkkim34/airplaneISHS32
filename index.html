@@ -12,7 +12,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 900px;
+      max-width: 1200px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -23,21 +23,24 @@
       text-align: center;
     }
     .seat-map {
-      display: grid;
-      grid-template-columns: repeat(11, auto);
-      gap: 4px;
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 8px;
       justify-content: center;
       margin-top: 20px;
+      padding-bottom: 10px;
     }
     .seat-column {
       display: flex;
       flex-direction: column;
       gap: 4px;
       align-items: center;
+      min-width: 42px;
     }
     .seat {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       background-color: #0078d7;
       color: white;
       border: none;
