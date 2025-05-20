@@ -12,7 +12,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 900px;
       margin: auto;
       background: white;
       padding: 20px;
@@ -23,16 +23,17 @@
       text-align: center;
     }
     .seat-map {
+      display: grid;
+      grid-template-columns: repeat(11, auto);
+      gap: 4px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .seat-column {
       display: flex;
       flex-direction: column;
       gap: 4px;
       align-items: center;
-      margin-top: 20px;
-    }
-    .seat-row {
-      display: grid;
-      grid-template-columns: repeat(11, 1fr);
-      gap: 4px;
     }
     .seat {
       width: 36px;
@@ -43,9 +44,6 @@
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
-    }
-    .aisle {
-      visibility: hidden;
     }
     .selected {
       background-color: red !important;
@@ -70,7 +68,16 @@
       padding: 5px 10px;
       font-size: 14px;
     }
+    #resetBtn {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+    }
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 </head>
 <body>
 <div class="container">
@@ -80,82 +87,45 @@
 
   <div class="info">
     <p><strong>선택한 좌석:</strong> <span id="selectedSeat">없음</span></p>
+    <button id="resetBtn">선택 초기화</button>
     <div class="counts" id="seatCounts"></div>
   </div>
 </div>
 
 <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBRcksGx1IxNVQXPW2P-ocvj3pdqCPGTJk",
+    authDomain: "seat-survey.firebaseapp.com",
+    databaseURL: "https://seat-survey-default-rtdb.firebaseio.com",
+    projectId: "seat-survey",
+    storageBucket: "seat-survey.firebasestorage.app",
+    messagingSenderId: "898759076315",
+    appId: "1:898759076315:web:0c5fb728603765a2769ffe",
+    measurementId: "G-X493J6LN64"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
   const seatMap = document.getElementById('seatMap');
   const selectedSeatSpan = document.getElementById('selectedSeat');
   const seatCountsContainer = document.getElementById('seatCounts');
-  const seatCounts = {};
-  let seatSelected = false;
+  const resetBtn = document.getElementById('resetBtn');
 
-  const layout = {
-    F: [
-      { row: 1, seats: ['A', '', 'D', 'E', '', 'J'] },
-      { row: 2, seats: ['A', '', 'D', 'E', '', 'J'] },
-    ],
-    C: [
-      { row: 7, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 8, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 9, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 10, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 11, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 12, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 14, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-      { row: 15, seats: ['A', 'B', '', 'D', 'E', 'F', '', 'H', 'J'] },
-    ],
-    Y: Array.from({ length: 26 }, (_, i) => {
-      const row = 28 + i;
-      return { row, seats: ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'] };
-    })
-  };
+  const columns = ['A', 'B', 'C', '', 'D', 'E', 'F', '', 'G', 'H', 'J'];
+  const rows = Array.from({ length: 26 }, (_, i) => 28 + i);
 
-  Object.values(layout).flat().forEach(({ row, seats }) => {
-    const rowDiv = document.createElement('div');
-    rowDiv.className = 'seat-row';
+  function getSeatColor(count) {
+    if (count >= 40) return '#3b0a0a';
+    if (count >= 30) return '#800000';
+    if (count >= 20) return '#cc0000';
+    if (count >= 10) return '#ff3333';
+    return '#0078d7';
+  }
 
-    seats.forEach(seat => {
-      if (seat === '') {
-        const empty = document.createElement('div');
-        empty.className = 'aisle';
-        rowDiv.appendChild(empty);
-      } else {
-        const seatId = `${row}${seat}`;
-        seatCounts[seatId] = 0;
-        const btn = document.createElement('button');
-        btn.className = 'seat';
-        btn.textContent = seatId;
-        btn.dataset.seat = seatId;
-
-        btn.addEventListener('click', () => {
-          if (seatSelected) return; // 한 번만 선택 가능
-
-          btn.classList.add('selected');
-          seatCounts[seatId]++;
-          selectedSeatSpan.textContent = seatId;
-          updateSeatCounts();
-
-          seatSelected = true;
-          document.querySelectorAll('.seat').forEach(b => {
-            if (!b.classList.contains('selected')) {
-              b.disabled = true;
-              b.classList.add('disabled');
-            }
-          });
-        });
-
-        rowDiv.appendChild(btn);
-      }
-    });
-
-    seatMap.appendChild(rowDiv);
-  });
-
-  function updateSeatCounts() {
+  function updateSeatCountsDisplay(counts) {
     seatCountsContainer.innerHTML = '';
-    Object.entries(seatCounts).forEach(([seat, count]) => {
+    Object.entries(counts).forEach(([seat, count]) => {
       if (count > 0) {
         const div = document.createElement('div');
         div.className = 'count-box';
@@ -164,6 +134,73 @@
       }
     });
   }
+
+  function renderSeats(counts) {
+    seatMap.innerHTML = '';
+    const selected = localStorage.getItem('selectedSeat');
+
+    columns.forEach(col => {
+      const colDiv = document.createElement('div');
+      colDiv.className = 'seat-column';
+
+      if (col === '') {
+        const spacer = document.createElement('div');
+        spacer.style.height = `${rows.length * 40}px`;
+        colDiv.appendChild(spacer);
+        seatMap.appendChild(colDiv);
+        return;
+      }
+
+      rows.forEach(row => {
+        const seatId = `${row}${col}`;
+        const btn = document.createElement('button');
+        const count = counts[seatId] || 0;
+
+        btn.className = 'seat';
+        btn.textContent = `${seatId} (${count})`;
+        btn.dataset.seat = seatId;
+        btn.style.backgroundColor = getSeatColor(count);
+
+        if (selected) {
+          btn.disabled = true;
+          btn.classList.add('disabled');
+          if (selected === seatId) {
+            btn.classList.add('selected');
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+          }
+        }
+
+        btn.addEventListener('click', () => {
+          if (localStorage.getItem('selectedSeat')) return;
+          const ref = database.ref('seats/' + seatId);
+          ref.transaction(current => (current || 0) + 1);
+          localStorage.setItem('selectedSeat', seatId);
+          selectedSeatSpan.textContent = seatId;
+        });
+
+        colDiv.appendChild(btn);
+      });
+
+      seatMap.appendChild(colDiv);
+    });
+  }
+
+  database.ref('seats').on('value', snapshot => {
+    const counts = snapshot.val() || {};
+    renderSeats(counts);
+    updateSeatCountsDisplay(counts);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    const seatId = localStorage.getItem('selectedSeat');
+    if (!seatId) return;
+
+    const ref = database.ref('seats/' + seatId);
+    ref.transaction(current => Math.max((current || 1) - 1, 0));
+    localStorage.removeItem('selectedSeat');
+    selectedSeatSpan.textContent = '없음';
+  });
 </script>
 </body>
 </html>
